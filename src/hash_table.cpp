@@ -39,11 +39,15 @@ namespace itis {
     // Tip 2: consider the case when the key exists (read the docs in the header file)
 
     int index = hash(key);
-    std::pair <int, std::string> pair (key, value);
-    if(index > buckets_.size()-1){
-        buckets_.resize(index+1);
-    }
-    buckets_[index].push_back(pair);
+    std::pair <int, std::string> p (key, value);
+      for (auto &pair: buckets_[index]) {
+          if (pair.first == key) {
+              pair = p;
+              return;
+          }
+      }
+
+    buckets_[index].push_back(p);
     num_keys_++;
 
 
@@ -52,16 +56,17 @@ namespace itis {
       // Tip 3: recompute hash codes (indices) for key-value pairs (create a new hash-table)
       // Tip 4: use utils::hash(key, size) to compute new indices for key-value pairs
 
-        auto newBuckets = new std::vector<Bucket>[buckets_.size()*kGrowthCoefficient];
-        for(int j = 0; j < buckets_.size(); j++){
-            for (auto pair : buckets_[j]){
-                int index = hash(pair.first);
-                newBuckets[index][0].push_back(pair);
+        auto newBuckets = std::vector<Bucket>{buckets_.size()*kGrowthCoefficient};
+        for (auto &bucket : buckets_){
+            for (auto &pair : bucket){
+                int index = utils::hash(pair.first, newBuckets.size());
+                newBuckets[index].push_back(pair);
             }
         }
         buckets_.clear();
-        buckets_ = *newBuckets;
+        buckets_ = newBuckets;
     }
+
   }
 
   std::optional<std::string> HashTable::Remove(int key) {
@@ -71,10 +76,9 @@ namespace itis {
     int index = hash(key);
     for (auto pair : buckets_[index]){
         if(pair.first == key){
-            std::pair <int, std::string> pair (key, pair.second);
-            //std::optional<std::string> res = make_optional(pair.second);
+            auto ans = make_optional(pair.second);
             buckets_[index].remove(pair);
-            return pair.second;
+            return ans;
         }
     }
     return std::nullopt;
